@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../context/useAppContext';
 import { Button } from '../components/ui/button';
@@ -11,12 +12,6 @@ interface ChatInterfaceProps {
   documentContent?: string;
   projectId?: string;
   isProjectChat?: boolean;
-  messages?: Array<{
-    id: string;
-    role: 'user' | 'ai';
-    content: string;
-    timestamp: Date;
-  }>;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
@@ -25,7 +20,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   projectId,
   isProjectChat = false
 }) => {
-  const { addChatMessage, chatMessages, documents, currentProject } = useAppContext();
+  const { addChatMessage, chatMessages, documents } = useAppContext();
   const [message, setMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -33,6 +28,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const chatId = isProjectChat ? projectId : documentId;
   const displayMessages = chatId ? chatMessages[chatId] || [] : [];
   
+  // Only get documents for the current project
   const projectDocuments = isProjectChat && projectId 
     ? documents.filter(doc => doc.projectId === projectId)
     : [];
@@ -68,7 +64,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       let contextContent = '';
       
       if (isProjectChat) {
+        // Only consider documents from the current project
         const docsWithContent = projectDocuments.filter(doc => doc.content);
+        if (docsWithContent.length === 0) {
+          addChatMessage(chatId, 'ai', 'I cannot answer without any document content. Please upload and open documents in this project first.');
+          setIsProcessing(false);
+          return;
+        }
+        
         contextContent = docsWithContent
           .map(doc => `Document "${doc.name}": ${doc.content?.slice(0, 1000)}...`)
           .join('\n\n');
@@ -137,7 +140,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <Info className="h-3.5 w-3.5 mr-1" />
           <span>
             {isProjectChat 
-              ? "Ask about all documents in this project" 
+              ? `Ask about ${projectDocuments.length} document${projectDocuments.length !== 1 ? 's' : ''} in this project` 
               : "Ask questions about this document"}
           </span>
         </div>
@@ -154,8 +157,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </h3>
             <p className="max-w-sm mt-2">
               {isProjectChat
-                ? "Use the chat to ask questions about all documents in this project."
-                : "Use the chat to ask questions about the document content, request summaries, or extract key information."}
+                ? `Ask questions about ${projectDocuments.length > 0 ? 'the ' + projectDocuments.length + ' document' + (projectDocuments.length !== 1 ? 's' : '') : 'documents'} in this project.`
+                : "Ask questions about the document content, request summaries, or extract key information."}
             </p>
           </div>
         ) : (
@@ -225,7 +228,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <div className="flex items-end gap-2">
           <Textarea
             placeholder={isProjectChat 
-              ? "Ask a question about all documents in this project..." 
+              ? `Ask a question about ${projectDocuments.length > 0 ? 'the ' + projectDocuments.length + ' document' + (projectDocuments.length !== 1 ? 's' : '') : 'documents'} in this project...` 
               : "Ask a question about this document..."}
             value={message}
             onChange={(e) => setMessage(e.target.value)}

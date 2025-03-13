@@ -8,10 +8,11 @@ import { useProjects } from '../hooks/useProjects';
 import { useDocuments } from '../hooks/useDocuments';
 import { AppProvider } from '../context/AppContext';
 import { Button } from '../components/ui/button';
-import { PlusCircle, Book, FileText, ChevronLeft } from 'lucide-react';
+import { PlusCircle, Book, FileText, ChevronLeft, MessageSquare } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
+import ChatInterface from '../components/ChatInterface';
 
 const AppContent = () => {
   const { projects, currentProject, createProject, selectProject } = useProjects();
@@ -19,6 +20,7 @@ const AppContent = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDescription, setNewProjectDescription] = useState('');
+  const [showChat, setShowChat] = useState(false);
 
   const handleCreateProject = () => {
     if (newProjectName.trim()) {
@@ -52,47 +54,69 @@ const AppContent = () => {
             </Button>
             <h1 className="text-2xl font-medium">{currentProject.name}</h1>
           </div>
+          
+          <Button 
+            variant={showChat ? "secondary" : "outline"}
+            onClick={() => setShowChat(!showChat)}
+            className="flex items-center gap-2"
+          >
+            <MessageSquare className="h-4 w-4" />
+            {showChat ? "Hide Chat" : "Show Chat"}
+          </Button>
         </div>
         
-        {projectDocs.length === 0 ? (
-          <div className="space-y-6">
-            <div className="text-center p-12 border border-dashed rounded-lg">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-xl font-medium">No documents yet</h2>
-              <p className="text-muted-foreground mt-1 mb-6">
-                Upload documents to start analyzing them with AI
-              </p>
-            </div>
-            <FileUploader />
-          </div>
-        ) : (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {projectDocs.map(doc => (
-                <div
-                  key={doc.id}
-                  className="p-4 border rounded-lg hover:bg-muted/20 transition-colors cursor-pointer animate-fade-in"
-                  onClick={() => {
-                    // Loading document content handled by the document viewer
-                  }}
-                >
-                  <div className="flex items-center mb-2">
-                    <div className={`file-icon ${doc.type} mr-3 h-10 w-10 flex items-center justify-center rounded`}>
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">{doc.name}</h3>
-                      <p className="text-xs text-muted-foreground">
-                        {doc.type.toUpperCase()} • {new Date(doc.updatedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className={`${showChat ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
+            {projectDocs.length === 0 ? (
+              <div className="space-y-6">
+                <div className="text-center p-12 border border-dashed rounded-lg">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h2 className="text-xl font-medium">No documents yet</h2>
+                  <p className="text-muted-foreground mt-1 mb-6">
+                    Upload documents to start analyzing them with AI
+                  </p>
                 </div>
-              ))}
-            </div>
-            <FileUploader />
+                <FileUploader />
+              </div>
+            ) : (
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {projectDocs.map(doc => (
+                    <div
+                      key={doc.id}
+                      className="p-4 border rounded-lg hover:bg-muted/20 transition-colors cursor-pointer animate-fade-in"
+                      onClick={() => {
+                        // Loading document content handled by the document viewer
+                      }}
+                    >
+                      <div className="flex items-center mb-2">
+                        <div className={`file-icon ${doc.type} mr-3 h-10 w-10 flex items-center justify-center rounded`}>
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{doc.name}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {doc.type.toUpperCase()} • {new Date(doc.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <FileUploader />
+              </div>
+            )}
           </div>
-        )}
+          
+          {showChat && (
+            <div className="lg:col-span-1 h-[600px]">
+              <ChatInterface 
+                projectId={currentProject.id}
+                isProjectChat={true}
+              />
+            </div>
+          )}
+        </div>
       </div>
     );
   }
