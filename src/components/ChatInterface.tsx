@@ -8,9 +8,11 @@ import { Send, Bot, User, Info } from 'lucide-react';
 import { toast } from '../components/ui/use-toast';
 
 interface ChatInterfaceProps {
-  documentId: string;
-  documentContent: string;
-  messages: Array<{
+  documentId?: string;
+  documentContent?: string;
+  projectId?: string;
+  isProjectChat?: boolean;
+  messages?: Array<{
     id: string;
     role: 'user' | 'ai';
     content: string;
@@ -21,45 +23,73 @@ interface ChatInterfaceProps {
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
   documentId, 
   documentContent,
-  messages = []
+  projectId,
+  isProjectChat = false
 }) => {
-  const { addChatMessage } = useAppContext();
+  const { addChatMessage, chatMessages, documents, currentProject } = useAppContext();
   const [message, setMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Determine which messages to show based on whether this is a project chat or document chat
+  const chatId = isProjectChat ? projectId : documentId;
+  const displayMessages = chatId ? chatMessages[chatId] || [] : [];
+  
+  // For project chat, collect all document contents for context
+  const projectDocuments = isProjectChat && projectId 
+    ? documents.filter(doc => doc.projectId === projectId)
+    : [];
+
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [displayMessages]);
 
   useEffect(() => {
     // Show a toast message when the chat interface is loaded for the first time
-    if (messages.length === 0) {
+    if (displayMessages.length === 0) {
       toast({
-        title: "Chat Ready",
-        description: "Ask questions about your document or choose from the suggestions below.",
+        title: isProjectChat ? "Project Chat Ready" : "Document Chat Ready",
+        description: isProjectChat 
+          ? "Ask questions about all documents in this project." 
+          : "Ask questions about this specific document.",
       });
     }
-  }, [messages.length]);
+  }, [displayMessages.length, isProjectChat]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleSendMessage = async () => {
-    if (!message.trim() || isProcessing) return;
+    if (!message.trim() || isProcessing || !chatId) return;
     
     const userMessage = message.trim();
     setMessage('');
-    addChatMessage(documentId, 'user', userMessage);
+    addChatMessage(chatId, 'user', userMessage);
     
     setIsProcessing(true);
     try {
-      const aiResponse = await generateAIResponse(documentContent, userMessage);
-      addChatMessage(documentId, 'ai', aiResponse);
+      let contextContent = '';
+      
+      if (isProjectChat) {
+        // Combine content from all project documents (with limitations for large projects)
+        const docsWithContent = projectDocuments.filter(doc => doc.content);
+        contextContent = docsWithContent
+          .map(doc => `Document "${doc.name}": ${doc.content?.slice(0, 1000)}...`)
+          .join('\n\n');
+      } else if (documentContent) {
+        contextContent = documentContent;
+      }
+      
+      if (!contextContent) {
+        addChatMessage(chatId, 'ai', 'I cannot answer without any document content. Please upload documents first.');
+      } else {
+        const aiResponse = await generateAIResponse(contextContent, userMessage);
+        addChatMessage(chatId, 'ai', aiResponse);
+      }
     } catch (error) {
       console.error('Error generating AI response:', error);
-      addChatMessage(documentId, 'ai', 'I apologize, but I encountered an error processing your request.');
+      addChatMessage(chatId, 'ai', 'I apologize, but I encountered an error processing your request.');
       toast({
         title: "Error",
         description: "Failed to generate a response. Please try again.",
@@ -81,37 +111,60 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const getSuggestions = () => [
-    "Can you summarize this document?",
-    "What are the key points?",
-    "Extract the main arguments.",
-    "What recommendations does this document make?",
-  ];
+  const getSuggestions = () => {
+    if (isProjectChat) {
+      return [
+        "What are the main themes across all documents?",
+        "Compare and contrast the documents in this project.",
+        "What key insights can you extract from all documents?",
+        "Summarize all documents in this project.",
+      ];
+    } else {
+      return [
+        "Can you summarize this document?",
+        "What are the key points?",
+        "Extract the main arguments.",
+        "What recommendations does this document make?",
+      ];
+    }
+  };
 
   return (
-    <div className="flex flex-col h-[600px] border rounded-lg overflow-hidden bg-muted/10 shadow-sm">
+    <div className="flex flex-col h-full border rounded-lg overflow-hidden bg-muted/10 shadow-sm">
       <div className="bg-primary/5 py-2 px-4 border-b flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bot className="h-4 w-4 text-primary" />
-          <h3 className="font-medium">Document Assistant</h3>
+          <h3 className="font-medium">
+            {isProjectChat ? "Project Assistant" : "Document Assistant"}
+          </h3>
         </div>
         <div className="flex items-center text-xs text-muted-foreground">
           <Info className="h-3.5 w-3.5 mr-1" />
-          <span>Ask questions about your document</span>
+          <span>
+            {isProjectChat 
+              ? "Ask about all documents in this project" 
+              : "Ask questions about this document"}
+          </span>
         </div>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
+        {displayMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
             <Bot className="h-12 w-12 mb-4" />
-            <h3 className="text-lg font-medium">Ask about this document</h3>
+            <h3 className="text-lg font-medium">
+              {isProjectChat 
+                ? "Ask about this project" 
+                : "Ask about this document"}
+            </h3>
             <p className="max-w-sm mt-2">
-              Use the chat to ask questions about the document content, request summaries, or extract key information.
+              {isProjectChat
+                ? "Use the chat to ask questions about all documents in this project."
+                : "Use the chat to ask questions about the document content, request summaries, or extract key information."}
             </p>
           </div>
         ) : (
-          messages.map((msg) => (
+          displayMessages.map((msg) => (
             <div
               key={msg.id}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}
@@ -155,7 +208,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <div ref={messagesEndRef} />
       </div>
       
-      {messages.length === 0 && (
+      {displayMessages.length === 0 && (
         <div className="px-4 pb-4">
           <div className="flex flex-wrap gap-2 mb-4">
             {getSuggestions().map((suggestion, i) => (
@@ -176,7 +229,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <div className="p-4 border-t bg-card">
         <div className="flex items-end gap-2">
           <Textarea
-            placeholder="Ask a question about this document..."
+            placeholder={isProjectChat 
+              ? "Ask a question about all documents in this project..." 
+              : "Ask a question about this document..."}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}

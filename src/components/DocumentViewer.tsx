@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -29,7 +28,7 @@ const DocumentViewer: React.FC = () => {
     if (currentDocument) {
       toast({
         title: "Document loaded successfully",
-        description: "Click on the Chat tab to interact with your document using AI.",
+        description: "Click on the Chat tab to interact with this specific document using AI.",
       });
     }
   }, [currentDocument]);
@@ -96,8 +95,9 @@ const DocumentViewer: React.FC = () => {
     }
   };
 
-  const documentMessages = currentDocument 
-    ? chatMessages[currentDocument.id] || [] 
+  // Document-specific messages
+  const documentMessages = currentDocument && chatMessages[currentDocument.id] 
+    ? chatMessages[currentDocument.id] 
     : [];
 
   if (!currentDocument) {
@@ -136,7 +136,7 @@ const DocumentViewer: React.FC = () => {
           </TabsTrigger>
           <TabsTrigger value="chat" className="flex items-center">
             <MessageSquare className="h-4 w-4 mr-2" />
-            Chat
+            Document Chat
           </TabsTrigger>
           <TabsTrigger value="insights" className="flex items-center">
             <Clock className="h-4 w-4 mr-2" />
@@ -152,7 +152,6 @@ const DocumentViewer: React.FC = () => {
           <ChatInterface 
             documentId={currentDocument.id} 
             documentContent={currentDocument.content || ''} 
-            messages={documentMessages}
           />
         </TabsContent>
         

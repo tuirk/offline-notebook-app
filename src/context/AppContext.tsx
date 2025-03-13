@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export interface Project {
@@ -33,7 +32,7 @@ interface AppContextType {
   documents: Document[];
   currentProject: Project | null;
   currentDocument: Document | null;
-  chatMessages: Record<string, ChatMessage[]>;
+  chatMessages: Record<string, ChatMessage[]>; // Now stores messages by projectId instead of documentId
   
   addProject: (name: string, description: string) => Promise<Project>;
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
@@ -45,7 +44,7 @@ interface AppContextType {
   deleteDocument: (id: string) => Promise<void>;
   setCurrentDocument: (document: Document | null) => void;
   
-  addChatMessage: (documentId: string, role: 'user' | 'ai', content: string) => void;
+  addChatMessage: (projectId: string, role: 'user' | 'ai', content: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -154,6 +153,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setProjects(prev => prev.filter(project => project.id !== id));
     // Also delete all documents in this project
     setDocuments(prev => prev.filter(doc => doc.projectId !== id));
+    
+    // Also delete chat messages for this project
+    if (chatMessages[id]) {
+      const newChatMessages = { ...chatMessages };
+      delete newChatMessages[id];
+      setChatMessages(newChatMessages);
+    }
   };
 
   const addDocument = async (projectId: string, file: File): Promise<Document> => {
@@ -192,15 +198,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const deleteDocument = async (id: string): Promise<void> => {
     setDocuments(prev => prev.filter(doc => doc.id !== id));
-    // Also delete all chat messages for this document
-    if (chatMessages[id]) {
-      const newChatMessages = { ...chatMessages };
-      delete newChatMessages[id];
-      setChatMessages(newChatMessages);
-    }
+    // We no longer delete chat messages since they're now at the project level
   };
 
-  const addChatMessage = (documentId: string, role: 'user' | 'ai', content: string) => {
+  const addChatMessage = (projectId: string, role: 'user' | 'ai', content: string) => {
     const newMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role,
@@ -210,7 +211,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     
     setChatMessages(prev => ({
       ...prev,
-      [documentId]: [...(prev[documentId] || []), newMessage],
+      [projectId]: [...(prev[projectId] || []), newMessage],
     }));
   };
 
