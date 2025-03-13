@@ -1,6 +1,7 @@
 
 import { useCallback, useState } from 'react';
-import { useAppContext, Document } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
+import { Document } from '../types';
 import { readFileAsText, readFileAsDataURL, extractTextFromPDF } from '../utils/fileUtils';
 
 export function useDocuments() {

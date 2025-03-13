@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { generateAIResponse } from '../utils/aiUtils';
@@ -31,11 +30,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Determine which messages to show based on whether this is a project chat or document chat
   const chatId = isProjectChat ? projectId : documentId;
   const displayMessages = chatId ? chatMessages[chatId] || [] : [];
   
-  // For project chat, collect all document contents for context
   const projectDocuments = isProjectChat && projectId 
     ? documents.filter(doc => doc.projectId === projectId)
     : [];
@@ -45,7 +42,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [displayMessages]);
 
   useEffect(() => {
-    // Show a toast message when the chat interface is loaded for the first time
     if (displayMessages.length === 0) {
       toast({
         title: isProjectChat ? "Project Chat Ready" : "Document Chat Ready",
@@ -72,7 +68,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       let contextContent = '';
       
       if (isProjectChat) {
-        // Combine content from all project documents (with limitations for large projects)
         const docsWithContent = projectDocuments.filter(doc => doc.content);
         contextContent = docsWithContent
           .map(doc => `Document "${doc.name}": ${doc.content?.slice(0, 1000)}...`)

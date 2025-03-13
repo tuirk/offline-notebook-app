@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 import { useDocuments } from '../hooks/useDocuments';
 import DocumentViewer from './DocumentViewer';
 import { Button } from '../components/ui/button';

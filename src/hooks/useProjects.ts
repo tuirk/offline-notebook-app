@@ -1,6 +1,6 @@
-
 import { useCallback } from 'react';
-import { useAppContext, Project } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
+import { Project } from '../types';
 
 export function useProjects() {
   const { 

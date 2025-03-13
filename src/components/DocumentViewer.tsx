@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -5,7 +6,7 @@ import { extractKeyTerms, analyzeDocument } from '../utils/aiUtils';
 import { File, FileText, MessageSquare, Clock, ArrowLeft } from 'lucide-react';
 import ChatInterface from './ChatInterface';
 import { useDocuments } from '../hooks/useDocuments';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '../context/useAppContext';
 import { readFileAsText } from '../utils/fileUtils';
 import { toast } from '../components/ui/use-toast';
 
