@@ -20,7 +20,7 @@ const AppContent = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDescription, setNewProjectDescription] = useState('');
-  const [showChat, setShowChat] = useState(false);
+  const [showChat, setShowChat] = useState(true); // Chat shown by default
 
   const handleCreateProject = () => {
     if (newProjectName.trim()) {
@@ -65,57 +65,82 @@ const AppContent = () => {
           </Button>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className={`${showChat ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Documents column - left */}
+          <div className="lg:col-span-4">
             {projectDocs.length === 0 ? (
-              <div className="space-y-6">
-                <div className="text-center p-12 border border-dashed rounded-lg">
-                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h2 className="text-xl font-medium">No documents yet</h2>
-                  <p className="text-muted-foreground mt-1 mb-6">
-                    Upload documents to start analyzing them with AI
-                  </p>
-                </div>
-                <FileUploader />
+              <div className="text-center p-6 border border-dashed rounded-lg">
+                <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                <h2 className="text-lg font-medium">No documents yet</h2>
+                <p className="text-muted-foreground text-sm mb-2">
+                  Upload documents to analyze
+                </p>
               </div>
             ) : (
-              <div className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-sm font-medium mb-3">Project Documents</h3>
+                <div className="space-y-2">
                   {projectDocs.map(doc => (
                     <div
                       key={doc.id}
-                      className="p-4 border rounded-lg hover:bg-muted/20 transition-colors cursor-pointer animate-fade-in"
+                      className="p-3 border rounded-lg hover:bg-muted/20 transition-colors cursor-pointer animate-fade-in flex items-center"
                       onClick={() => {
                         // Loading document content handled by the document viewer
                       }}
                     >
-                      <div className="flex items-center mb-2">
-                        <div className={`file-icon ${doc.type} mr-3 h-10 w-10 flex items-center justify-center rounded`}>
-                          <FileText className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium">{doc.name}</h3>
-                          <p className="text-xs text-muted-foreground">
-                            {doc.type.toUpperCase()} • {new Date(doc.updatedAt).toLocaleDateString()}
-                          </p>
-                        </div>
+                      <div className={`file-icon ${doc.type} mr-2 h-8 w-8 flex items-center justify-center rounded`}>
+                        <FileText className="h-4 w-4" />
+                      </div>
+                      <div className="truncate">
+                        <h3 className="font-medium text-sm truncate">{doc.name}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {doc.type.toUpperCase()} • {new Date(doc.updatedAt).toLocaleDateString()}
+                        </p>
                       </div>
                     </div>
                   ))}
                 </div>
-                <FileUploader />
               </div>
             )}
           </div>
           
-          {showChat && (
-            <div className="lg:col-span-1 h-[600px]">
-              <ChatInterface 
-                projectId={currentProject.id}
-                isProjectChat={true}
-              />
+          {/* Chat column - middle */}
+          <div className="lg:col-span-5">
+            {showChat && (
+              <div className="h-[600px]">
+                <ChatInterface 
+                  projectId={currentProject.id}
+                  isProjectChat={true}
+                />
+              </div>
+            )}
+          </div>
+          
+          {/* Upload column - right */}
+          <div className="lg:col-span-3">
+            <div className="space-y-6">
+              <FileUploader />
+              {projectDocs.length > 0 && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-sm font-medium mb-2">Project Stats</h3>
+                  <div className="text-sm">
+                    <p className="flex justify-between py-1.5 border-b">
+                      <span className="text-muted-foreground">Documents:</span>
+                      <span className="font-medium">{projectDocs.length}</span>
+                    </p>
+                    <p className="flex justify-between py-1.5 border-b">
+                      <span className="text-muted-foreground">Created:</span>
+                      <span className="font-medium">{new Date(currentProject.createdAt).toLocaleDateString()}</span>
+                    </p>
+                    <p className="flex justify-between py-1.5">
+                      <span className="text-muted-foreground">Last updated:</span>
+                      <span className="font-medium">{new Date(currentProject.updatedAt).toLocaleDateString()}</span>
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     );

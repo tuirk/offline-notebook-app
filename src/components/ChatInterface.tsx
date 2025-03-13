@@ -128,7 +128,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full border rounded-lg overflow-hidden bg-muted/10 shadow-sm">
+    <div className="flex flex-col h-full border rounded-lg overflow-hidden bg-card shadow-sm">
       <div className="bg-primary/5 py-2 px-4 border-b flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bot className="h-4 w-4 text-primary" />
