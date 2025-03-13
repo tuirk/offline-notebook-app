@@ -4,7 +4,8 @@ import { useAppContext } from '../context/AppContext';
 import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { generateAIResponse } from '../utils/aiUtils';
-import { Send, Bot, User } from 'lucide-react';
+import { Send, Bot, User, Info } from 'lucide-react';
+import { toast } from '../components/ui/use-toast';
 
 interface ChatInterfaceProps {
   documentId: string;
@@ -31,6 +32,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    // Show a toast message when the chat interface is loaded for the first time
+    if (messages.length === 0) {
+      toast({
+        title: "Chat Ready",
+        description: "Ask questions about your document or choose from the suggestions below.",
+      });
+    }
+  }, [messages.length]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -49,6 +60,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } catch (error) {
       console.error('Error generating AI response:', error);
       addChatMessage(documentId, 'ai', 'I apologize, but I encountered an error processing your request.');
+      toast({
+        title: "Error",
+        description: "Failed to generate a response. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -73,7 +89,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-[600px] border rounded-lg overflow-hidden bg-muted/10">
+    <div className="flex flex-col h-[600px] border rounded-lg overflow-hidden bg-muted/10 shadow-sm">
+      <div className="bg-primary/5 py-2 px-4 border-b flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Bot className="h-4 w-4 text-primary" />
+          <h3 className="font-medium">Document Assistant</h3>
+        </div>
+        <div className="flex items-center text-xs text-muted-foreground">
+          <Info className="h-3.5 w-3.5 mr-1" />
+          <span>Ask questions about your document</span>
+        </div>
+      </div>
+      
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
@@ -89,7 +116,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               key={msg.id}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}
             >
-              <div className={`chat-bubble ${msg.role}`}>
+              <div className={`chat-bubble ${msg.role} ${msg.role === 'user' ? 'bg-primary/10 text-primary-foreground' : 'bg-card border'} p-3 rounded-lg max-w-[80%]`}>
                 <div className="flex items-center gap-2 mb-1.5 text-xs opacity-70">
                   {msg.role === 'ai' ? (
                     <>
@@ -112,7 +139,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         )}
         {isProcessing && (
           <div className="flex justify-start animate-pulse">
-            <div className="chat-bubble ai">
+            <div className="chat-bubble ai bg-card border p-3 rounded-lg">
               <div className="flex items-center gap-2 mb-1.5 text-xs opacity-70">
                 <Bot className="h-3.5 w-3.5" />
                 <span>AI Assistant</span>

@@ -8,6 +8,7 @@ import ChatInterface from './ChatInterface';
 import { useDocuments } from '../hooks/useDocuments';
 import { useAppContext } from '../context/AppContext';
 import { readFileAsText } from '../utils/fileUtils';
+import { toast } from '../components/ui/use-toast';
 
 const DocumentViewer: React.FC = () => {
   const { currentDocument, setCurrentDocument } = useDocuments();
@@ -22,6 +23,16 @@ const DocumentViewer: React.FC = () => {
       analyzeCurrentDocument();
     }
   }, [currentDocument, activeTab, documentAnalysis]);
+
+  // When a document is loaded, show a toast notification about the chat feature
+  useEffect(() => {
+    if (currentDocument) {
+      toast({
+        title: "Document loaded successfully",
+        description: "Click on the Chat tab to interact with your document using AI.",
+      });
+    }
+  }, [currentDocument]);
 
   const analyzeCurrentDocument = async () => {
     if (!currentDocument?.content) return;
@@ -43,6 +54,11 @@ const DocumentViewer: React.FC = () => {
       setKeyTerms(terms);
     } catch (error) {
       console.error('Error analyzing document:', error);
+      toast({
+        title: "Analysis failed",
+        description: "Could not analyze the document. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsAnalyzing(false);
     }
