@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import ProjectCard from '../components/ProjectCard';
@@ -65,21 +64,34 @@ const AppContent = () => {
           </Button>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Documents column - left */}
-          <div className="lg:col-span-4">
-            {projectDocs.length === 0 ? (
-              <div className="text-center p-6 border border-dashed rounded-lg">
-                <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                <h2 className="text-lg font-medium">No documents yet</h2>
-                <p className="text-muted-foreground text-sm mb-2">
-                  Upload documents to analyze
-                </p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Chat column - 2/3 of the screen */}
+          <div className="lg:col-span-2">
+            {showChat && (
+              <div className="h-[600px]">
+                <ChatInterface 
+                  projectId={currentProject.id}
+                  isProjectChat={true}
+                />
               </div>
-            ) : (
-              <div>
-                <h3 className="text-sm font-medium mb-3">Project Documents</h3>
-                <div className="space-y-2">
+            )}
+          </div>
+          
+          {/* Documents + Upload column - 1/3 of the screen */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Project Documents section */}
+            <div>
+              <h3 className="text-sm font-medium mb-3">Project Documents</h3>
+              {projectDocs.length === 0 ? (
+                <div className="text-center p-6 border border-dashed rounded-lg mb-6">
+                  <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                  <h2 className="text-lg font-medium">No documents yet</h2>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    Upload documents to analyze
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 mb-6">
                   {projectDocs.map(doc => (
                     <div
                       key={doc.id}
@@ -100,46 +112,32 @@ const AppContent = () => {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-          
-          {/* Chat column - middle */}
-          <div className="lg:col-span-5">
-            {showChat && (
-              <div className="h-[600px]">
-                <ChatInterface 
-                  projectId={currentProject.id}
-                  isProjectChat={true}
-                />
-              </div>
-            )}
-          </div>
-          
-          {/* Upload column - right */}
-          <div className="lg:col-span-3">
-            <div className="space-y-6">
-              <FileUploader />
-              {projectDocs.length > 0 && (
-                <div className="border rounded-lg p-4">
-                  <h3 className="text-sm font-medium mb-2">Project Stats</h3>
-                  <div className="text-sm">
-                    <p className="flex justify-between py-1.5 border-b">
-                      <span className="text-muted-foreground">Documents:</span>
-                      <span className="font-medium">{projectDocs.length}</span>
-                    </p>
-                    <p className="flex justify-between py-1.5 border-b">
-                      <span className="text-muted-foreground">Created:</span>
-                      <span className="font-medium">{new Date(currentProject.createdAt).toLocaleDateString()}</span>
-                    </p>
-                    <p className="flex justify-between py-1.5">
-                      <span className="text-muted-foreground">Last updated:</span>
-                      <span className="font-medium">{new Date(currentProject.updatedAt).toLocaleDateString()}</span>
-                    </p>
-                  </div>
-                </div>
               )}
             </div>
+            
+            {/* File Upload section */}
+            <FileUploader />
+            
+            {/* Project Stats section */}
+            {projectDocs.length > 0 && (
+              <div className="border rounded-lg p-4">
+                <h3 className="text-sm font-medium mb-2">Project Stats</h3>
+                <div className="text-sm">
+                  <p className="flex justify-between py-1.5 border-b">
+                    <span className="text-muted-foreground">Documents:</span>
+                    <span className="font-medium">{projectDocs.length}</span>
+                  </p>
+                  <p className="flex justify-between py-1.5 border-b">
+                    <span className="text-muted-foreground">Created:</span>
+                    <span className="font-medium">{new Date(currentProject.createdAt).toLocaleDateString()}</span>
+                  </p>
+                  <p className="flex justify-between py-1.5">
+                    <span className="text-muted-foreground">Last updated:</span>
+                    <span className="font-medium">{new Date(currentProject.updatedAt).toLocaleDateString()}</span>
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
