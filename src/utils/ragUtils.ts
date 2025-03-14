@@ -69,14 +69,20 @@ export class DocumentEmbedder {
       try {
         if (chunk.trim().length === 0) continue;
         
-        const embedding = await this.embeddingModel(chunk, { 
+        const result = await this.embeddingModel(chunk, { 
           pooling: "mean", 
           normalize: true 
         });
         
+        // Explicitly convert embedding data to number array
+        // This is the fix for the type error - ensuring we have a proper number[]
+        const embeddingData: number[] = Array.isArray(result.data) 
+          ? result.data.map((val: any) => Number(val)) 
+          : [];
+        
         this.documentChunks.push({
           text: chunk,
-          embedding: Array.from(embedding.data)
+          embedding: embeddingData
         });
       } catch (error) {
         console.error("Error generating embedding for chunk:", error);
@@ -96,12 +102,20 @@ export class DocumentEmbedder {
     console.log(`Finding relevant chunks for query: "${query}"`);
     
     // Generate embedding for the query
-    const queryEmbedding = await this.embeddingModel(query, { 
+    const queryResult = await this.embeddingModel(query, { 
       pooling: "mean", 
       normalize: true 
     });
     
-    const queryVector = Array.from(queryEmbedding.data);
+    // Explicitly convert query embedding to number array
+    const queryVector: number[] = Array.isArray(queryResult.data) 
+      ? queryResult.data.map((val: any) => Number(val)) 
+      : [];
+    
+    if (queryVector.length === 0) {
+      console.error("Failed to generate query embedding");
+      return [];
+    }
     
     // Calculate similarity scores
     const similarities = this.documentChunks.map((chunk, index) => ({
