@@ -32,18 +32,26 @@ export const analyzeDocument = async (text: string): Promise<string> => {
 // Modified function to generate an AI response to a user query
 export const generateAIResponse = async (documentText: string, userQuery: string): Promise<string> => {
   try {
-    // Use RAG-based response if possible
-    if (window.navigator.onLine && document.visibilityState === 'visible') {
-      try {
-        // Try to use RAG model first
-        return await generateRAGResponse(documentText, userQuery);
-      } catch (error) {
-        console.warn("RAG model failed, falling back to mock responses:", error);
-        // Fall back to mock responses if RAG fails
-      }
+    console.log("AIUtils: Generate response for query:", userQuery);
+    
+    // Validate document text
+    if (!documentText || documentText.trim().length === 0) {
+      console.warn("Empty document text received in generateAIResponse");
+      return "I need document content to answer your question. Please upload a document first.";
+    }
+    
+    // Use RAG-based response if models are ready
+    try {
+      console.log("Attempting to use RAG model for response");
+      // Try to use RAG model first
+      return await generateRAGResponse(documentText, userQuery);
+    } catch (error) {
+      console.warn("RAG model failed, falling back to mock responses:", error);
+      // Fall back to mock responses if RAG fails
     }
     
     // Fall back to mock responses
+    console.log("Using fallback mock response generation");
     return new Promise((resolve) => {
       setTimeout(() => {
         if (userQuery.toLowerCase().includes('summary')) {

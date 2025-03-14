@@ -26,6 +26,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const { addChatMessage, chatMessages, documents } = useAppContext();
   const [isProcessing, setIsProcessing] = useState(false);
   const [modelStatus, setModelStatus] = useState<string>('');
+  const [documentProcessed, setDocumentProcessed] = useState(false);
 
   const chatId = isProjectChat ? projectId : documentId;
   const displayMessages = chatId ? chatMessages[chatId] || [] : [];
@@ -68,6 +69,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  // Pre-process document content when available
+  useEffect(() => {
+    const processDocument = async () => {
+      if (!documentContent || documentContent.length === 0 || documentProcessed) return;
+      
+      try {
+        console.log("Pre-processing document content of length:", documentContent.length);
+        await documentEmbedder.processDocument(documentContent);
+        setDocumentProcessed(true);
+        console.log("Document pre-processing complete");
+      } catch (error) {
+        console.error("Error pre-processing document:", error);
+      }
+    };
+    
+    processDocument();
+  }, [documentContent, documentProcessed]);
+
   const handleSendMessage = async (userMessage: string) => {
     if (!chatId) return;
     
@@ -96,6 +115,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (!contextContent) {
         addChatMessage(chatId, 'ai', 'I cannot answer without any document content. Please upload documents first.');
       } else {
+        console.log("Sending message with context length:", contextContent.length);
         const aiResponse = await generateAIResponse(contextContent, userMessage);
         addChatMessage(chatId, 'ai', aiResponse);
       }

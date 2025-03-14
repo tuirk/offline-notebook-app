@@ -48,6 +48,13 @@ export class DocumentEmbedder {
 
   // Process a document and create embeddings
   async processDocument(documentText: string): Promise<void> {
+    console.log("Processing document with length:", documentText.length);
+    
+    if (!documentText || documentText.length === 0) {
+      console.error("Empty document text received");
+      throw new Error("Cannot process empty document");
+    }
+    
     await this.initialize();
     
     // Clear previous chunks
@@ -55,10 +62,13 @@ export class DocumentEmbedder {
     
     // Split document into chunks
     const chunks = this.splitIntoChunks(documentText);
+    console.log(`Split document into ${chunks.length} chunks`);
     
     // Generate embeddings for each chunk
     for (const chunk of chunks) {
       try {
+        if (chunk.trim().length === 0) continue;
+        
         const embedding = await this.embeddingModel(chunk, { 
           pooling: "mean", 
           normalize: true 
@@ -66,7 +76,7 @@ export class DocumentEmbedder {
         
         this.documentChunks.push({
           text: chunk,
-          embedding: embedding.tolist()[0] // Get the first (and only) embedding
+          embedding: Array.from(embedding.data)
         });
       } catch (error) {
         console.error("Error generating embedding for chunk:", error);
@@ -79,8 +89,11 @@ export class DocumentEmbedder {
   // Find the most relevant chunks for a query
   async findRelevantChunks(query: string, topK: number = 3): Promise<string[]> {
     if (this.documentChunks.length === 0) {
+      console.error("No document chunks available");
       throw new Error("No document chunks available. Process a document first.");
     }
+    
+    console.log(`Finding relevant chunks for query: "${query}"`);
     
     // Generate embedding for the query
     const queryEmbedding = await this.embeddingModel(query, { 
@@ -88,7 +101,7 @@ export class DocumentEmbedder {
       normalize: true 
     });
     
-    const queryVector = queryEmbedding.tolist()[0];
+    const queryVector = Array.from(queryEmbedding.data);
     
     // Calculate similarity scores
     const similarities = this.documentChunks.map((chunk, index) => ({
@@ -100,7 +113,9 @@ export class DocumentEmbedder {
     similarities.sort((a, b) => b.score - a.score);
     
     // Return the top K most relevant chunks
-    return similarities.slice(0, topK).map(sim => this.documentChunks[sim.index].text);
+    const results = similarities.slice(0, topK).map(sim => this.documentChunks[sim.index].text);
+    console.log(`Found ${results.length} relevant chunks`);
+    return results;
   }
   
   // Calculate cosine similarity between two vectors
@@ -164,6 +179,8 @@ export class TextGenerator {
     await this.initialize();
     
     try {
+      console.log("Generating response with context length:", context.length);
+      
       // Prepare prompt with context and query
       const prompt = `Context: ${context}\n\nQuestion: ${query}\n\nAnswer:`;
       
@@ -201,24 +218,40 @@ export const textGenerator = new TextGenerator();
 
 // Main function for RAG-based response generation
 export async function generateRAGResponse(documentText: string, userQuery: string): Promise<string> {
+  console.log("Starting RAG response generation for query:", userQuery);
+  
   try {
-    // Process the document if needed
-    if (documentEmbedder.isInitialized() === false) {
+    // Check if document is available
+    if (!documentText || documentText.length === 0) {
+      return "I need document content to answer your question. Please upload a document first.";
+    }
+    
+    // Process the document
+    if (!documentEmbedder.isInitialized()) {
+      console.log("Processing document for the first time");
       await documentEmbedder.processDocument(documentText);
     }
     
     // Retrieve relevant chunks
+    console.log("Finding relevant chunks for query");
     const relevantChunks = await documentEmbedder.findRelevantChunks(userQuery);
+    
+    if (relevantChunks.length === 0) {
+      return "I couldn't find relevant information in the document to answer your question.";
+    }
     
     // Join relevant chunks as context
     const context = relevantChunks.join("\n\n");
+    console.log("Retrieved context length:", context.length);
     
     // Generate response based on retrieved context
+    console.log("Generating final response");
     const response = await textGenerator.generateResponse(context, userQuery);
     
+    console.log("RAG response generation completed");
     return response;
   } catch (error) {
     console.error("Error in RAG response generation:", error);
-    return "I'm sorry, I couldn't generate a response based on the document content.";
+    return "I'm sorry, I couldn't generate a response based on the document content. Technical error occurred.";
   }
 }
