@@ -74,11 +74,45 @@ export class DocumentEmbedder {
           normalize: true 
         });
         
-        // Explicitly convert embedding data to number array
-        // This is the fix for the type error - ensuring we have a proper number[]
-        const embeddingData: number[] = Array.isArray(result.data) 
-          ? result.data.map((val: any) => Number(val)) 
-          : [];
+        // Extract embedding data from the tensor
+        // First, check if it's directly accessible via .data
+        let embeddingData: number[] = [];
+        
+        if (result && result.data) {
+          console.log("Embedding result type:", typeof result.data);
+          
+          // Check for different tensor formats and extract accordingly
+          if (result.data.tolist) {
+            // Direct tensor with tolist method
+            embeddingData = result.data.tolist();
+            console.log("Using tolist() method to extract embedding data");
+          } else if (Array.isArray(result.data)) {
+            // Already an array, convert to numbers
+            embeddingData = result.data.map((val: any) => Number(val));
+            console.log("Converting array-like data to number array");
+          } else if (result.data.values) {
+            // TypedArray with values
+            embeddingData = Array.from(result.data.values());
+            console.log("Converting TypedArray values to number array");
+          } else if (result.tolist) {
+            // Direct tensor on the result object itself
+            embeddingData = result.tolist();
+            console.log("Using top-level tolist() method");
+          } else {
+            // Last resort - try to convert whatever we have
+            embeddingData = Array.from(result.data);
+            console.log("Using Array.from on result.data as fallback");
+          }
+        }
+        
+        // Validate embedding data
+        if (embeddingData.length === 0) {
+          console.error("Failed to extract embedding data", result);
+          continue;
+        }
+        
+        // Debugging: log first few values of embedding
+        console.log("Embedding data sample:", embeddingData.slice(0, 5));
         
         this.documentChunks.push({
           text: chunk,
@@ -107,28 +141,65 @@ export class DocumentEmbedder {
       normalize: true 
     });
     
-    // Explicitly convert query embedding to number array
-    const queryVector: number[] = Array.isArray(queryResult.data) 
-      ? queryResult.data.map((val: any) => Number(val)) 
-      : [];
+    // Extract query vector using the same approach as in processDocument
+    let queryVector: number[] = [];
     
+    if (queryResult && queryResult.data) {
+      if (queryResult.data.tolist) {
+        queryVector = queryResult.data.tolist();
+      } else if (Array.isArray(queryResult.data)) {
+        queryVector = queryResult.data.map((val: any) => Number(val));
+      } else if (queryResult.data.values) {
+        queryVector = Array.from(queryResult.data.values());
+      } else if (queryResult.tolist) {
+        queryVector = queryResult.tolist();
+      } else {
+        queryVector = Array.from(queryResult.data);
+      }
+    }
+    
+    // Validate query vector
     if (queryVector.length === 0) {
-      console.error("Failed to generate query embedding");
+      console.error("Failed to generate query embedding", queryResult);
       return [];
     }
     
-    // Calculate similarity scores
-    const similarities = this.documentChunks.map((chunk, index) => ({
-      index,
-      score: this.cosineSimilarity(queryVector, chunk.embedding)
-    }));
+    console.log("Query vector sample:", queryVector.slice(0, 5));
     
-    // Sort by similarity score (descending)
-    similarities.sort((a, b) => b.score - a.score);
+    // Calculate similarity scores
+    const similarities = this.documentChunks.map((chunk, index) => {
+      // Validate chunk embedding
+      if (!chunk.embedding || chunk.embedding.length === 0) {
+        console.error("Invalid embedding for chunk at index", index);
+        return { index, score: -1 };
+      }
+      
+      if (queryVector.length !== chunk.embedding.length) {
+        console.error(
+          `Vector dimension mismatch: query=${queryVector.length}, chunk=${chunk.embedding.length}`
+        );
+        return { index, score: -1 };
+      }
+      
+      return {
+        index,
+        score: this.cosineSimilarity(queryVector, chunk.embedding)
+      };
+    });
+    
+    // Filter out invalid scores and sort by similarity (descending)
+    const validSimilarities = similarities
+      .filter(sim => sim.score >= 0)
+      .sort((a, b) => b.score - a.score);
+    
+    console.log(`Found ${validSimilarities.length} valid similarities`);
     
     // Return the top K most relevant chunks
-    const results = similarities.slice(0, topK).map(sim => this.documentChunks[sim.index].text);
-    console.log(`Found ${results.length} relevant chunks`);
+    const results = validSimilarities
+      .slice(0, topK)
+      .map(sim => this.documentChunks[sim.index].text);
+    
+    console.log(`Returning ${results.length} relevant chunks`);
     return results;
   }
   
@@ -146,6 +217,11 @@ export class DocumentEmbedder {
       dotProduct += vecA[i] * vecB[i];
       normA += vecA[i] * vecA[i];
       normB += vecB[i] * vecB[i];
+    }
+    
+    if (normA === 0 || normB === 0) {
+      console.warn("Zero magnitude vector detected in similarity calculation");
+      return 0;
     }
     
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
@@ -205,12 +281,21 @@ export class TextGenerator {
         temperature: 0.7
       });
       
-      let response = result[0].generated_text;
+      let response = "";
+      if (Array.isArray(result) && result.length > 0) {
+        response = result[0].generated_text || "";
+      } else {
+        console.error("Unexpected result format from text generation model:", result);
+        return "I'm sorry, I encountered an unexpected response format.";
+      }
       
       // Extract only the answer part
-      response = response.split("Answer:").pop() || response;
+      const answerPart = response.split("Answer:").pop();
+      if (answerPart) {
+        response = answerPart.trim();
+      }
       
-      return response.trim();
+      return response || "I'm sorry, I couldn't generate a meaningful response.";
     } catch (error) {
       console.error("Error generating response:", error);
       return "I'm sorry, I encountered an error while generating a response.";
@@ -269,3 +354,4 @@ export async function generateRAGResponse(documentText: string, userQuery: strin
     return "I'm sorry, I couldn't generate a response based on the document content. Technical error occurred.";
   }
 }
+

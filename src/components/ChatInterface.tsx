@@ -27,6 +27,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [modelStatus, setModelStatus] = useState<string>('');
   const [documentProcessed, setDocumentProcessed] = useState(false);
+  const [processingError, setProcessingError] = useState<string | null>(null);
 
   const chatId = isProjectChat ? projectId : documentId;
   const displayMessages = chatId ? chatMessages[chatId] || [] : [];
@@ -76,11 +77,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       
       try {
         console.log("Pre-processing document content of length:", documentContent.length);
+        setProcessingError(null);
         await documentEmbedder.processDocument(documentContent);
         setDocumentProcessed(true);
         console.log("Document pre-processing complete");
       } catch (error) {
         console.error("Error pre-processing document:", error);
+        setProcessingError("Failed to process document for RAG. Falling back to simpler approach.");
+        toast({
+          title: "Document Processing Error",
+          description: "There was an issue processing the document. Some AI features may be limited.",
+          variant: "destructive"
+        });
       }
     };
     
@@ -116,6 +124,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         addChatMessage(chatId, 'ai', 'I cannot answer without any document content. Please upload documents first.');
       } else {
         console.log("Sending message with context length:", contextContent.length);
+        
+        // If there was a processing error, we'll mention it in the response
+        if (processingError) {
+          console.warn(processingError);
+        }
+        
         const aiResponse = await generateAIResponse(contextContent, userMessage);
         addChatMessage(chatId, 'ai', aiResponse);
       }
@@ -145,6 +159,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         documentsCount={projectDocuments.length} 
         modelStatus={modelStatus}
       />
+      
+      {processingError && (
+        <div className="px-4 py-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-sm">
+          {processingError}
+        </div>
+      )}
       
       {displayMessages.length === 0 ? (
         <ChatEmptyState 
