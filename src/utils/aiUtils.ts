@@ -1,3 +1,4 @@
+import { generateRAGResponse } from './ragUtils';
 
 /**
  * This file contains utility functions for AI processing in the application.
@@ -28,22 +29,38 @@ export const analyzeDocument = async (text: string): Promise<string> => {
   });
 };
 
-// Mock function to generate an AI response to a user query
+// Modified function to generate an AI response to a user query
 export const generateAIResponse = async (documentText: string, userQuery: string): Promise<string> => {
-  // In a real implementation, this would use an actual AI model
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      if (userQuery.toLowerCase().includes('summary')) {
-        resolve(generateMockSummary(documentText));
-      } else if (userQuery.toLowerCase().includes('key points')) {
-        resolve(generateMockKeyPoints(documentText));
-      } else if (userQuery.toLowerCase().includes('recommend') || userQuery.toLowerCase().includes('suggestion')) {
-        resolve(generateMockRecommendations(documentText));
-      } else {
-        resolve(generateMockResponse(documentText, userQuery));
+  try {
+    // Use RAG-based response if possible
+    if (window.navigator.onLine && document.visibilityState === 'visible') {
+      try {
+        // Try to use RAG model first
+        return await generateRAGResponse(documentText, userQuery);
+      } catch (error) {
+        console.warn("RAG model failed, falling back to mock responses:", error);
+        // Fall back to mock responses if RAG fails
       }
-    }, 1500);
-  });
+    }
+    
+    // Fall back to mock responses
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        if (userQuery.toLowerCase().includes('summary')) {
+          resolve(generateMockSummary(documentText));
+        } else if (userQuery.toLowerCase().includes('key points')) {
+          resolve(generateMockKeyPoints(documentText));
+        } else if (userQuery.toLowerCase().includes('recommend') || userQuery.toLowerCase().includes('suggestion')) {
+          resolve(generateMockRecommendations(documentText));
+        } else {
+          resolve(generateMockResponse(documentText, userQuery));
+        }
+      }, 1500);
+    });
+  } catch (error) {
+    console.error("Error in AI response generation:", error);
+    return "I'm sorry, I encountered an error while generating a response.";
+  }
 };
 
 // Mock function to extract key terms from document content

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/useAppContext';
 import { generateAIResponse } from '../utils/aiUtils';
+import { documentEmbedder, textGenerator } from '../utils/ragUtils';
 import { toast } from '../components/ui/use-toast';
 import ChatHeader from './chat/ChatHeader';
 import ChatMessageList from './chat/ChatMessageList';
@@ -24,6 +25,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 }) => {
   const { addChatMessage, chatMessages, documents } = useAppContext();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [modelStatus, setModelStatus] = useState<string>('');
 
   const chatId = isProjectChat ? projectId : documentId;
   const displayMessages = chatId ? chatMessages[chatId] || [] : [];
@@ -43,6 +45,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       });
     }
   }, [displayMessages.length, isProjectChat]);
+
+  // Check model loading status
+  useEffect(() => {
+    const checkModelStatus = () => {
+      const embeddingInitializing = documentEmbedder.isInitializing();
+      const generatorInitializing = textGenerator.isInitializing();
+      const embeddingInitialized = documentEmbedder.isInitialized();
+      const generatorInitialized = textGenerator.isInitialized();
+      
+      if (embeddingInitializing || generatorInitializing) {
+        setModelStatus('Loading AI models...');
+      } else if (embeddingInitialized && generatorInitialized) {
+        setModelStatus('AI models loaded (using RAG)');
+        setTimeout(() => setModelStatus(''), 3000); // Clear after 3 seconds
+      } else {
+        setModelStatus('');
+      }
+    };
+    
+    const interval = setInterval(checkModelStatus, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSendMessage = async (userMessage: string) => {
     if (!chatId) return;
@@ -99,6 +123,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <ChatHeader 
         isProjectChat={isProjectChat} 
         documentsCount={projectDocuments.length} 
+        modelStatus={modelStatus}
       />
       
       {displayMessages.length === 0 ? (

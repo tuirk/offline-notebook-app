@@ -1,29 +1,39 @@
 
 import React from 'react';
-import { Bot, Info } from 'lucide-react';
+import { MessageSquareText } from 'lucide-react';
 
 interface ChatHeaderProps {
   isProjectChat: boolean;
   documentsCount: number;
+  modelStatus?: string;
 }
 
-const ChatHeader: React.FC<ChatHeaderProps> = ({ isProjectChat, documentsCount }) => {
+const ChatHeader: React.FC<ChatHeaderProps> = ({ 
+  isProjectChat, 
+  documentsCount,
+  modelStatus 
+}) => {
   return (
-    <div className="bg-primary/5 py-2 px-4 border-b flex items-center justify-between">
+    <div className="p-4 border-b flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <Bot className="h-4 w-4 text-primary" />
-        <h3 className="font-medium">
-          {isProjectChat ? "Project Assistant" : "Document Assistant"}
-        </h3>
+        <MessageSquareText className="h-5 w-5 text-primary" />
+        <div>
+          <h3 className="font-medium">
+            {isProjectChat ? 'Project Chat' : 'Document Chat'}
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            {isProjectChat 
+              ? `AI assistant for ${documentsCount} document${documentsCount !== 1 ? 's' : ''}` 
+              : 'AI assistant for this document'}
+          </p>
+        </div>
       </div>
-      <div className="flex items-center text-xs text-muted-foreground">
-        <Info className="h-3.5 w-3.5 mr-1" />
-        <span>
-          {isProjectChat 
-            ? `Ask about ${documentsCount} document${documentsCount !== 1 ? 's' : ''} in this project` 
-            : "Ask questions about this document"}
-        </span>
-      </div>
+      
+      {modelStatus && (
+        <div className="text-xs px-2 py-1 bg-secondary/50 rounded-full animate-pulse">
+          {modelStatus}
+        </div>
+      )}
     </div>
   );
 };
