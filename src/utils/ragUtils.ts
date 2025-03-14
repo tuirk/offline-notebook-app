@@ -22,8 +22,7 @@ export class DocumentEmbedder {
       // Load a small embedding model suitable for browser use
       this.embeddingModel = await pipeline(
         "feature-extraction",
-        "mixedbread-ai/mxbai-embed-xsmall-v1",  
-        { quantized: true }
+        "mixedbread-ai/mxbai-embed-xsmall-v1"
       );
       
       console.log("Embedding model loaded successfully");
@@ -149,8 +148,7 @@ export class TextGenerator {
       // Load a small text generation model
       this.generationModel = await pipeline(
         "text-generation",
-        "onnx-community/tiny-random-gpt2",
-        { quantized: true }
+        "onnx-community/tiny-random-gpt2"
       );
       
       console.log("Text generation model loaded successfully");
