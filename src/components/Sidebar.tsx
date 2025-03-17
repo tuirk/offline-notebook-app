@@ -43,7 +43,7 @@ const Sidebar: React.FC = () => {
       <aside className={`h-screen bg-card border-r border-border transition-all duration-300 flex flex-col ${isOpen ? 'w-64' : 'w-16'}`}>
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h1 className={`font-medium transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 w-0 overflow-hidden'}`}>
-            NotebookLM
+            Notebookish
           </h1>
           <button
             onClick={() => setIsOpen(!isOpen)}
